@@ -1,0 +1,218 @@
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|████████████████████████████████████████████████████████| 9877/9877 [00:00<00:00, 10342.13it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:18<00:00,  5.42it/s]
+Feature generation complete.
+Feature matrix shape: (9877, 128)
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 8661.56it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:20<00:00,  4.81it/s]
+Feature generation complete.
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training...
+Epoch 010 | Loss: 0.6434 | Test AUC: 0.8091
+Epoch 020 | Loss: 0.5850 | Test AUC: 0.8748
+Epoch 030 | Loss: 0.4898 | Test AUC: 0.9129
+Epoch 040 | Loss: 0.4597 | Test AUC: 0.9315
+Epoch 050 | Loss: 0.4420 | Test AUC: 0.9467
+Epoch 060 | Loss: 0.4332 | Test AUC: 0.9569
+Epoch 070 | Loss: 0.4266 | Test AUC: 0.9635
+Epoch 080 | Loss: 0.4208 | Test AUC: 0.9687
+Epoch 090 | Loss: 0.4180 | Test AUC: 0.9722
+Epoch 100 | Loss: 0.4160 | Test AUC: 0.9747
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9445.49it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:19<00:00,  5.14it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training...
+Epoch 010 | Loss: 0.6209 | Test AUC: 0.8562
+Epoch 020 | Loss: 0.5822 | Test AUC: 0.8633
+Epoch 030 | Loss: 0.5145 | Test AUC: 0.8993
+Epoch 040 | Loss: 0.4674 | Test AUC: 0.9287
+Epoch 050 | Loss: 0.4419 | Test AUC: 0.9499
+Epoch 060 | Loss: 0.4318 | Test AUC: 0.9627
+Epoch 070 | Loss: 0.4249 | Test AUC: 0.9700
+Epoch 080 | Loss: 0.4159 | Test AUC: 0.9749
+Epoch 090 | Loss: 0.4144 | Test AUC: 0.9778
+Epoch 100 | Loss: 0.4116 | Test AUC: 0.9800
+Model saved to cached_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9410.75it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:20<00:00,  4.85it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Traceback (most recent call last):
+  File "/Users/sparsh_khare/Documents/genie_gnn/main.py", line 102, in <module>
+    main()
+  File "/Users/sparsh_khare/Documents/genie_gnn/main.py", line 36, in main
+    wm_graph, wm_edge_index, wm_features, wm_labels = inject_watermark_features(graph, data.x)
+  File "/Users/sparsh_khare/Documents/genie_gnn/datasets/watermark.py", line 47, in inject_watermark_features
+    features_wm[node] = watermark_vector
+IndexError: index 60086 is out of bounds for dimension 0 with size 9877
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9572.64it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:19<00:00,  5.25it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking...
+Epoch 010 | Loss: 0.6545 | Test AUC: 0.8534 | Watermark AUC: 0.4037
+Epoch 020 | Loss: 0.5656 | Test AUC: 0.9236 | Watermark AUC: 0.3730
+Epoch 030 | Loss: 0.4786 | Test AUC: 0.9552 | Watermark AUC: 0.3461
+Epoch 040 | Loss: 0.4516 | Test AUC: 0.9686 | Watermark AUC: 0.3458
+Epoch 050 | Loss: 0.4405 | Test AUC: 0.9750 | Watermark AUC: 0.3084
+Epoch 060 | Loss: 0.4306 | Test AUC: 0.9794 | Watermark AUC: 0.3103
+Epoch 070 | Loss: 0.4244 | Test AUC: 0.9826 | Watermark AUC: 0.3096
+Epoch 080 | Loss: 0.4215 | Test AUC: 0.9853 | Watermark AUC: 0.3106
+Epoch 090 | Loss: 0.4206 | Test AUC: 0.9867 | Watermark AUC: 0.3129
+Epoch 100 | Loss: 0.4147 | Test AUC: 0.9880 | Watermark AUC: 0.3148
+Watermarked model saved to watermarked_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % mkdir -p results/CA-HepTh
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9491.66it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:19<00:00,  5.21it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking...
+Epoch 010 | Loss: 0.6481 | Test AUC: 0.8583 | Watermark AUC: 0.3676
+Epoch 020 | Loss: 0.5330 | Test AUC: 0.9242 | Watermark AUC: 0.3423
+Epoch 030 | Loss: 0.4704 | Test AUC: 0.9500 | Watermark AUC: 0.3036
+Epoch 040 | Loss: 0.4460 | Test AUC: 0.9661 | Watermark AUC: 0.2741
+Epoch 050 | Loss: 0.4300 | Test AUC: 0.9749 | Watermark AUC: 0.2469
+Epoch 060 | Loss: 0.4250 | Test AUC: 0.9798 | Watermark AUC: 0.2377
+Epoch 070 | Loss: 0.4194 | Test AUC: 0.9828 | Watermark AUC: 0.2379
+Epoch 080 | Loss: 0.4153 | Test AUC: 0.9848 | Watermark AUC: 0.2449
+Epoch 090 | Loss: 0.4147 | Test AUC: 0.9861 | Watermark AUC: 0.2472
+Epoch 100 | Loss: 0.4110 | Test AUC: 0.9871 | Watermark AUC: 0.2491
+Watermarked model saved to results/CA-HepTh/20250626_155034/watermarked_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py --subset_ratio 0.1
+
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 8363.09it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:19<00:00,  5.15it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking for subset_ratio=0.1...
+Epoch 010 | Loss: 0.6607 | Test AUC: 0.8677 | Watermark AUC: 0.4107
+Epoch 020 | Loss: 0.5418 | Test AUC: 0.9128 | Watermark AUC: 0.3714
+Epoch 030 | Loss: 0.4783 | Test AUC: 0.9545 | Watermark AUC: 0.3599
+Epoch 040 | Loss: 0.4528 | Test AUC: 0.9682 | Watermark AUC: 0.3495
+Epoch 050 | Loss: 0.4388 | Test AUC: 0.9760 | Watermark AUC: 0.3092
+Epoch 060 | Loss: 0.4302 | Test AUC: 0.9807 | Watermark AUC: 0.3238
+Epoch 070 | Loss: 0.4249 | Test AUC: 0.9834 | Watermark AUC: 0.3253
+Epoch 080 | Loss: 0.4217 | Test AUC: 0.9857 | Watermark AUC: 0.3183
+Epoch 090 | Loss: 0.4188 | Test AUC: 0.9871 | Watermark AUC: 0.3206
+Epoch 100 | Loss: 0.4161 | Test AUC: 0.9882 | Watermark AUC: 0.3238
+Watermarked model saved to results/CA-HepTh/subset_0_10/watermarked_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py --subset_ratio 0.05
+
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9557.53it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:20<00:00,  4.96it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking for subset_ratio=0.05...
+Epoch 010 | Loss: 0.6388 | Test AUC: 0.8918 | Watermark AUC: 0.4204
+Epoch 020 | Loss: 0.5049 | Test AUC: 0.9358 | Watermark AUC: 0.3833
+Epoch 030 | Loss: 0.4704 | Test AUC: 0.9604 | Watermark AUC: 0.3486
+Epoch 040 | Loss: 0.4460 | Test AUC: 0.9706 | Watermark AUC: 0.3344
+Epoch 050 | Loss: 0.4317 | Test AUC: 0.9769 | Watermark AUC: 0.3147
+Epoch 060 | Loss: 0.4218 | Test AUC: 0.9805 | Watermark AUC: 0.3621
+Epoch 070 | Loss: 0.4173 | Test AUC: 0.9834 | Watermark AUC: 0.4330
+Epoch 080 | Loss: 0.4134 | Test AUC: 0.9857 | Watermark AUC: 0.4634
+Epoch 090 | Loss: 0.4102 | Test AUC: 0.9871 | Watermark AUC: 0.5111
+Epoch 100 | Loss: 0.4083 | Test AUC: 0.9879 | Watermark AUC: 0.5382
+Watermarked model saved to results/CA-HepTh/subset_0_05/watermarked_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py --subset_ratio 0.20
+
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9132.56it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:22<00:00,  4.46it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking for subset_ratio=0.2...
+Epoch 010 | Loss: 0.6466 | Test AUC: 0.8874 | Watermark AUC: 0.4006
+Epoch 020 | Loss: 0.5285 | Test AUC: 0.9264 | Watermark AUC: 0.3486
+Epoch 030 | Loss: 0.4619 | Test AUC: 0.9655 | Watermark AUC: 0.3353
+Epoch 040 | Loss: 0.4395 | Test AUC: 0.9741 | Watermark AUC: 0.3159
+Epoch 050 | Loss: 0.4285 | Test AUC: 0.9804 | Watermark AUC: 0.3056
+Epoch 060 | Loss: 0.4222 | Test AUC: 0.9830 | Watermark AUC: 0.2882
+Epoch 070 | Loss: 0.4162 | Test AUC: 0.9857 | Watermark AUC: 0.2752
+Epoch 080 | Loss: 0.4134 | Test AUC: 0.9873 | Watermark AUC: 0.2708
+Epoch 090 | Loss: 0.4119 | Test AUC: 0.9886 | Watermark AUC: 0.2676
+Epoch 100 | Loss: 0.4091 | Test AUC: 0.9895 | Watermark AUC: 0.2653
+Watermarked model saved to results/CA-HepTh/subset_0_20/watermarked_model.pth
+(genie_stable) genie_venvsparsh_khare@wc-dhcp63d249 genie_gnn % python main.py --subset_ratio 0.50
+
+Loading graph...
+Graph loaded!
+- Nodes: 9877
+- Edges: 25998
+Generating Node2Vec features...
+Computing transition probabilities: 100%|█████████████████████████████████████████████████████████| 9877/9877 [00:01<00:00, 9494.38it/s]
+Generating walks (CPU: 1): 100%|██████████████████████████████████████████████████████████████████████| 100/100 [00:18<00:00,  5.41it/s]
+Feature matrix shape: (9877, 128)
+/opt/miniconda3/envs/genie_stable/lib/python3.10/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'train_test_split_edges' is deprecated, use 'transforms.RandomLinkSplit' instead
+  warnings.warn(out)
+Starting training with watermarking for subset_ratio=0.5...
+Epoch 010 | Loss: 0.6271 | Test AUC: 0.8645 | Watermark AUC: 0.3168
+Epoch 020 | Loss: 0.5451 | Test AUC: 0.9201 | Watermark AUC: 0.2827
+Epoch 030 | Loss: 0.4763 | Test AUC: 0.9443 | Watermark AUC: 0.2535
+Epoch 040 | Loss: 0.4536 | Test AUC: 0.9596 | Watermark AUC: 0.2440
+Epoch 050 | Loss: 0.4387 | Test AUC: 0.9697 | Watermark AUC: 0.2405
+Epoch 060 | Loss: 0.4321 | Test AUC: 0.9754 | Watermark AUC: 0.2366
+Epoch 070 | Loss: 0.4242 | Test AUC: 0.9795 | Watermark AUC: 0.2339
+Epoch 080 | Loss: 0.4225 | Test AUC: 0.9820 | Watermark AUC: 0.2338
+Epoch 090 | Loss: 0.4189 | Test AUC: 0.9838 | Watermark AUC: 0.2351
+Epoch 100 | Loss: 0.4166 | Test AUC: 0.9850 | Watermark AUC: 0.2384
+Watermarked model saved to results/CA-HepTh/subset_0_50/watermarked_model.pth
