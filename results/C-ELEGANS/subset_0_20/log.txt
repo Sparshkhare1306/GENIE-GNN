@@ -1,0 +1,10 @@
+Epoch 010 | Loss: 0.9724 | Test AUC: 0.7854 | Watermark AUC: 0.3162
+Epoch 020 | Loss: 0.9074 | Test AUC: 0.8185 | Watermark AUC: 0.4660
+Epoch 030 | Loss: 0.8648 | Test AUC: 0.8320 | Watermark AUC: 0.4892
+Epoch 040 | Loss: 0.8162 | Test AUC: 0.8581 | Watermark AUC: 0.5375
+Epoch 050 | Loss: 0.7872 | Test AUC: 0.8522 | Watermark AUC: 0.6395
+Epoch 060 | Loss: 0.7610 | Test AUC: 0.8440 | Watermark AUC: 0.7310
+Epoch 070 | Loss: 0.7545 | Test AUC: 0.8558 | Watermark AUC: 0.7825
+Epoch 080 | Loss: 0.7341 | Test AUC: 0.8611 | Watermark AUC: 0.7940
+Epoch 090 | Loss: 0.7279 | Test AUC: 0.8520 | Watermark AUC: 0.8051
+Epoch 100 | Loss: 0.7222 | Test AUC: 0.8553 | Watermark AUC: 0.8150

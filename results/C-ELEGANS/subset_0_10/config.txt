@@ -1,0 +1,6 @@
+Dataset: C-ELEGANS
+Node2Vec embedding_dim: 128
+GCN hidden_channels: 64
+Watermark subset_ratio: 0.1
+Training epochs: 100
+Learning rate: 0.01
