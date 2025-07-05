@@ -113,7 +113,7 @@ Watermark robustness visualizations are available:
 | C-ELEGANS | 0.3          | 0.891    | 0.87          | ✅ Yes           |
 
 
-🔐 Security and .gitignore
+## 🔐 Security and .gitignore
 - This repository uses .gitignore to:
 
 - Exclude sensitive files (e.g., token.txt)
@@ -123,15 +123,15 @@ Watermark robustness visualizations are available:
 - Avoid committing large datasets or model binaries unintentionally
 
 🧠 Key Concepts
-- Link Prediction: Predict if an edge exists between two nodes in a graph.
+- **Link Prediction:** Predict if an edge exists between two nodes in a graph.
 
-- Graph Watermarking: Embed a small pattern or substructure into a GNN’s training process to prove ownership.
+- **Graph Watermarking:** Embed a small pattern or substructure into a GNN’s training process to prove ownership.
 
-- Model Extraction: Attack where adversaries replicate a model using limited access to it.
+- **Model Extraction:** Attack where adversaries replicate a model using limited access to it.
 
-- Pruning: Removing weights or neurons to reduce model size.
+- **Pruning:** Removing weights or neurons to reduce model size.
 
-- AUC: Area under ROC curve, measures classification performance.
+- **AUC:** Area under ROC curve, measures classification performance.
 
 
 
