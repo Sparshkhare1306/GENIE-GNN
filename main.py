@@ -1,4 +1,3 @@
-# main.py
 import argparse
 import os
 import torch
@@ -9,7 +8,7 @@ import csv
 
 from datasets.embed_hepth import generate_node2vec_features
 from datasets.watermark import inject_watermark_features
-from models.gcn_link_predictor import GCNLinkPredictor
+from models.gcn_link_predictor import GCNLinkPredictorV2  # Note updated import for V2 model
 from datasets.load_celegans import load_c_elegans 
 
 # ---------------------- #
@@ -22,6 +21,7 @@ parser.add_argument(
     choices=["CA-HepTh", "AMAZON", "C-ELEGANS"], 
     help='Dataset to use'
 )
+parser.add_argument('--hidden_channels', type=int, default=64, help='Hidden channels for GCN')
 args = parser.parse_args()
 
 # ---------------------- #
@@ -38,9 +38,6 @@ elif dataset_name == "AMAZON":
 elif dataset_name == "C-ELEGANS":
     file_path = os.path.join("data", "Snap", "c_elegans.mtx")
     from datasets.load_celegans import load_c_elegans as dataset_loader
-
-  # or the exact filename you saved
-    dataset_loader = load_c_elegans
 else:
     raise ValueError(f"Unsupported dataset: {dataset_name}")
 
@@ -58,8 +55,8 @@ config_path = os.path.join(results_dir, "config.txt")
 
 with open(config_path, "w") as f:
     f.write(f"Dataset: {dataset_name}\n")
-    f.write(f"Node2Vec embedding_dim: 128\n")
-    f.write(f"GCN hidden_channels: 64\n")
+    f.write(f"Node2Vec embedding_dim: 64\n")  # This is fixed in generate_node2vec_features
+    f.write(f"GCN hidden_channels: {args.hidden_channels}\n")
     f.write(f"Watermark subset_ratio: {args.subset_ratio}\n")
     f.write("Training epochs: 100\n")
     f.write("Learning rate: 0.01\n")
@@ -75,7 +72,7 @@ def main():
     print(f"- Edges: {graph.number_of_edges()}")
 
     print("Generating Node2Vec features...")
-    features = generate_node2vec_features(graph, embedding_dim=128, epochs=50)
+    features = generate_node2vec_features(graph, embedding_dim=64, epochs=50)
     print("Feature matrix shape:", features.shape)
 
     data = from_networkx(graph)
@@ -90,7 +87,9 @@ def main():
     wm_edge_index = wm_edge_index.to(device)
     wm_labels = wm_labels.to(device)
 
-    model = GCNLinkPredictor(in_channels=features.shape[1], hidden_channels=64).to(device)
+    model = GCNLinkPredictorV2(in_channels=features.shape[1], hidden_channels=args.hidden_channels)
+    model = model.to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     data = data.to(device)
 
@@ -127,7 +126,7 @@ def main():
     def test():
         model.eval()
         z = model.encode(data.x, data.train_pos_edge_index)
-        pos_score = model.decode(z, data.test_pos_edge_index)
+        pos_score = model.decode(z, data.train_pos_edge_index).squeeze()
         neg_score = model.decode(z, data.test_neg_edge_index)
         y = torch.cat([torch.ones(pos_score.size(0)), torch.zeros(neg_score.size(0))]).to(device)
         preds = torch.cat([pos_score, neg_score])
@@ -156,8 +155,16 @@ def main():
             with open(log_path, "a") as f:
                 f.write(log_str + "\n")
 
-    torch.save(model.state_dict(), model_path)
-    print(f"Watermarked model saved to {model_path}")
+    # Save model and config for compatibility with prune.py or extraction scripts
+    torch.save({
+        "model_state": model.state_dict(),
+        "config": {
+            "input_dim": features.shape[1],
+            "hidden_dim": args.hidden_channels
+        }
+    }, model_path)
+
+    print(f"✅ Watermarked model saved to {model_path}")
 
 if __name__ == "__main__":
     main()

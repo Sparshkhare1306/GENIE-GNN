@@ -8,3 +8,13 @@ Epoch 070 | Loss: 0.4162 | Test AUC: 0.9857 | Watermark AUC: 0.2752
 Epoch 080 | Loss: 0.4134 | Test AUC: 0.9873 | Watermark AUC: 0.2708
 Epoch 090 | Loss: 0.4119 | Test AUC: 0.9886 | Watermark AUC: 0.2676
 Epoch 100 | Loss: 0.4091 | Test AUC: 0.9895 | Watermark AUC: 0.2653
+Epoch 010 | Loss: 0.6887 | Test AUC: 0.6236 | Watermark AUC: 0.4298
+Epoch 020 | Loss: 0.6663 | Test AUC: 0.6865 | Watermark AUC: 0.4166
+Epoch 030 | Loss: 0.6197 | Test AUC: 0.7536 | Watermark AUC: 0.4111
+Epoch 040 | Loss: 0.5523 | Test AUC: 0.8170 | Watermark AUC: 0.4252
+Epoch 050 | Loss: 0.4844 | Test AUC: 0.8611 | Watermark AUC: 0.4066
+Epoch 060 | Loss: 0.4603 | Test AUC: 0.8857 | Watermark AUC: 0.4076
+Epoch 070 | Loss: 0.4247 | Test AUC: 0.8949 | Watermark AUC: 0.4190
+Epoch 080 | Loss: 0.4087 | Test AUC: 0.9014 | Watermark AUC: 0.4194
+Epoch 090 | Loss: 0.3937 | Test AUC: 0.9095 | Watermark AUC: 0.4184
+Epoch 100 | Loss: 0.4264 | Test AUC: 0.9080 | Watermark AUC: 0.4062

@@ -1,7 +1,7 @@
 from node2vec import Node2Vec
 import numpy as np
 
-def generate_node2vec_features(graph, embedding_dim=128, epochs=10):
+def generate_node2vec_features(graph, embedding_dim=64, epochs=50):
     # Lowered walk_length and num_walks to reduce memory footprint
     node2vec = Node2Vec(
         graph,

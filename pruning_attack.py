@@ -35,7 +35,7 @@ graph = dataset_loader(file_path)
 print(f"Graph loaded! Nodes: {graph.number_of_nodes()}, Edges: {graph.number_of_edges()}")
 
 print("Generating Node2Vec features...")
-features = generate_node2vec_features(graph, embedding_dim=128, epochs=50)
+features = generate_node2vec_features(graph, embedding_dim=64, epochs=50)
 print(f"Feature matrix shape: {features.shape}")
 
 data = from_networkx(graph)

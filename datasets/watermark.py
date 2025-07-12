@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 from torch_geometric.utils import from_networkx, to_undirected
 
-def inject_watermark_features(graph, features, watermark_dim=128, subset_ratio=0.1, seed=42):
+def inject_watermark_features(graph, features, watermark_dim=64, subset_ratio=0.1, seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
 

@@ -10,7 +10,7 @@ import csv
 
 from datasets.embed_hepth import generate_node2vec_features
 from datasets.watermark import inject_watermark_features
-from models.gcn_link_predictor import GCNLinkPredictor
+from models.gcn_link_predictor import GCNLinkPredictorV2 as GCNLinkPredictor
 from datasets.load_hepth import load_hepth
 
 # ---------------------- #
@@ -32,7 +32,6 @@ if dataset_name == "CA-HepTh":
 elif dataset_name == "C-ELEGANS":
     file_path = os.path.join("data", "Snap", "c_elegans.mtx")
     from datasets.load_celegans import load_c_elegans as dataset_loader
-
 else:
     raise ValueError(f"Unsupported dataset: {dataset_name}")
 
@@ -56,7 +55,7 @@ def main():
     print(f"- Edges: {graph.number_of_edges()}")
 
     print("Generating Node2Vec features...")
-    features = generate_node2vec_features(graph, embedding_dim=128, epochs=50)
+    features = generate_node2vec_features(graph, embedding_dim=64, epochs=50)
     print("Feature matrix shape:", features.shape)
 
     data = from_networkx(graph)
@@ -136,6 +135,10 @@ def main():
             with open(csv_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow([epoch, loss, auc_clean, auc_wm])
+
+    # Save the fine-tuned model at the end
+    torch.save(model.state_dict(), os.path.join(results_dir, "fine_tuned_model.pth"))
+    print(f"✅ Fine-tuned model saved to {os.path.join(results_dir, 'fine_tuned_model.pth')}")
 
 if __name__ == "__main__":
     main()

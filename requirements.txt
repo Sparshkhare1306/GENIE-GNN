@@ -1,0 +1,23 @@
+# Core dependencies
+torch>=1.13.0
+torchvision>=0.14.0
+torchaudio>=0.13.0
+
+# PyTorch Geometric & dependencies (check official versions if GPU)
+torch-geometric>=2.3.0
+torch-scatter>=2.1.0
+torch-sparse>=0.6.17
+
+# Graph utilities
+networkx>=2.8
+
+# Math & machine learning
+numpy>=1.23
+scikit-learn>=1.2
+
+# Plotting (used in plot_results.py, plot_pruning_results.py)
+matplotlib>=3.6
+
+# General utilities
+tqdm>=4.64
+PyYAML>=6.0

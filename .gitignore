@@ -1,1 +1,45 @@
 token.txt
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+*.env
+
+# Python version managers
+.python-version
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# VSCode or other IDE configs
+.vscode/
+.idea/
+
+# Logs and local config
+*.log
+*.DS_Store
+.zshrc
+.history
+
+# Model and checkpoint files
+*.pth
+*.pt
+*.ckpt
+
+# Results and outputs
+results/*/*.pth
+results/*/plots/
+results/*/log.txt
+results/*/config.txt
+run_extraction.py
+try.py
+
+# System and OS files
+Thumbs.db
+.DS_Store
