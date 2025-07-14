@@ -1,0 +1,2 @@
+dataset,query_ratio,val_auc,test_auc,watermark_auc
+CA-HepTh,0.1,0.8851,0.497,N/A
