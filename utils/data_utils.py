@@ -14,7 +14,7 @@ def load_dataset(name):
         return nx.read_edgelist("data/Snap/ca-HepTh.txt", nodetype=int)
     elif name == "C-ELEGANS":
         # Fixed path for C-ELEGANS
-        path = "data/Snap/c-elegans.mtx"
+        path = "data/C-elegans/celegansneural.mtx"
         matrix = mmread(path).tocoo()
         G = nx.Graph()
         edges = list(zip(matrix.row.tolist(), matrix.col.tolist()))

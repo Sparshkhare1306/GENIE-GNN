@@ -1,13 +1,15 @@
 # attacks/fine_tune.py
 
+import os
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch_geometric.transforms import RandomLinkSplit
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+from sklearn.metrics import roc_auc_score
 
-from models.gcn_link_predictor import GCNLinkPredictor
+from models.gcn_link_predictor import GCNLinkPredictor, GCNLinkPredictorV2
 from utils.data_utils import load_dataset, generate_node2vec_features
 
 
@@ -35,7 +37,7 @@ def test(model, data, device):
 
     y_pred = torch.cat([pos_pred, neg_pred])
     y_true = torch.cat([torch.ones_like(pos_pred), torch.zeros_like(neg_pred)])
-    auc = F.binary_cross_entropy(y_pred, y_true).item()
+    auc = roc_auc_score(y_true.cpu(), y_pred.cpu())
     return auc
 
 
@@ -57,13 +59,22 @@ def run_fine_tuning(dataset: str, subset_ratio: float, model_variant: str):
     transform = RandomLinkSplit(is_undirected=True, split_labels=True, add_negative_train_samples=True)
     train_data, _, test_data = transform(data)
 
-    in_channels = x.shape[1]
-    hidden_channels = 128
-    model = GCNLinkPredictor(in_channels, hidden_channels).to(device)
+    # Load model config and state
+    subset_folder = f"subset_{subset_ratio:.2f}".replace('.', '_')
+    results_dir = os.path.join("results", dataset, subset_folder)
+    model_path = os.path.join(results_dir, "watermarked_model.pth")
+    print(f"Loading model from: {model_path}")
 
-    model_path = f"models/{dataset}_watermarked_{model_variant}.pth"
-    print(f"Loading model from {model_path}")
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    input_dim = checkpoint["config"]["input_dim"]
+    hidden_dim = checkpoint["config"]["hidden_dim"]
+
+    if model_variant == "V2":
+        model = GCNLinkPredictorV2(input_dim, hidden_dim).to(device)
+    else:
+        model = GCNLinkPredictor(input_dim, hidden_dim).to(device)
+
+    model.load_state_dict(checkpoint["model_state"])
 
     optimizer = optim.Adam(model.parameters(), lr=0.01)
     for epoch in range(1, 51):
@@ -71,4 +82,4 @@ def run_fine_tuning(dataset: str, subset_ratio: float, model_variant: str):
         print(f"Epoch {epoch:02d}, Loss: {loss:.4f}")
 
     auc = test(model, test_data, device)
-    print(f"Final Test AUC: {auc:.4f}")
+    print(f"✅ Final Test AUC: {auc:.4f}")
