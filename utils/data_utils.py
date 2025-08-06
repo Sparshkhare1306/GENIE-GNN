@@ -10,10 +10,11 @@ from torch_geometric.nn.models import Node2Vec
 
 def load_dataset(name):
     if name == "CA-HepTh":
-        return nx.read_edgelist("data/CA-HepTh.txt", nodetype=int)
+        # Fixed path for CA-HepTh
+        return nx.read_edgelist("data/Snap/ca-HepTh.txt", nodetype=int)
     elif name == "C-ELEGANS":
-        # Fix the path to point to the actual file
-        path = "data/C-elegans/celegansneural.mtx"
+        # Fixed path for C-ELEGANS
+        path = "data/Snap/c-elegans.mtx"
         matrix = mmread(path).tocoo()
         G = nx.Graph()
         edges = list(zip(matrix.row.tolist(), matrix.col.tolist()))
@@ -21,7 +22,6 @@ def load_dataset(name):
         return G
     else:
         raise ValueError(f"Unknown dataset: {name}")
-
 
 def generate_node2vec_features(graph, embedding_dim=128):
     data = from_networkx(graph)

@@ -6,40 +6,30 @@ from attacks.watermark import apply_watermark
 from utils.data_utils import load_dataset, generate_node2vec_features
 from models.gcn_link_predictor import GCNLinkPredictor, GCNLinkPredictorV2
 
+# experiments/run_watermarking.py
 
-def main(dataset: str, model_variant: str):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+from models.gcn_link_predictor import GCNLinkPredictor, GCNLinkPredictorV2
+from utils.data_utils import load_dataset
+from watermarking.generate_watermark import generate_watermark_edges
 
-    print(f"Loading graph for dataset: {dataset}")
-    graph = load_dataset(dataset)
-    print(f"Graph loaded! Nodes: {graph.number_of_nodes()}, Edges: {graph.number_of_edges()}")
+def run_watermarking(dataset_name, model_variant):
+    print(f"Loading graph for dataset: {dataset_name}")
+    G = load_dataset(dataset_name)
+    print(f"Graph loaded! Nodes: {G.number_of_nodes()}, Edges: {G.number_of_edges()}")
 
     print("Generating Node2Vec features...")
-    x = generate_node2vec_features(graph)
-    print("Feature matrix shape:", x.shape)
+    watermark_edges = generate_watermark_edges(G, num_edges=50, seed=42)
 
-    # ✅ Confirm model variant selection
-    print(f"Using model variant: {model_variant}")
-    if model_variant == 'v1':
-        model = GCNLinkPredictor(in_channels=x.shape[1], hidden_channels=64).to(device)
-    elif model_variant == 'v2':
-        model = GCNLinkPredictorV2(in_channels=x.shape[1], hidden_channels=64).to(device)
-    else:
-        raise ValueError(f"Unknown model variant: {model_variant}")
-
-    print("Applying watermarking...")
-    model = apply_watermark(graph, x, model, device)
-
-    save_path = f"models/{dataset}_watermarked_{model_variant}.pth"
-    os.makedirs("models", exist_ok=True)
-    torch.save(model.state_dict(), save_path)
-    print(f"✅ Watermarked model saved to: {save_path}")
-
+    # Save watermark edges
+    os.makedirs("data/watermark_edges", exist_ok=True)
+    watermark_path = f"data/watermark_edges/{dataset_name}_watermark.pt"
+    torch.save(watermark_edges, watermark_path)
+    print(f"✅ Saved watermark edges to: {watermark_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, choices=["CA-HepTh", "C-ELEGANS"], required=True)
-    parser.add_argument("--model_variant", type=str, choices=["v1", "v2"], default="v1")
+    parser.add_argument("--dataset", type=str, required=True, choices=["CA-HepTh", "C-ELEGANS"])
+    parser.add_argument("--model_variant", type=str, default="v2", choices=["v1", "v2"])
     args = parser.parse_args()
 
-    main(args.dataset, args.model_variant)
+    run_watermarking(args.dataset, args.model_variant)
