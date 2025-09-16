@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+import argparse
+import os
+import inspect
+import torch
+import numpy as np
+from sklearn.metrics import roc_auc_score
+from torch_geometric.utils import negative_sampling
+from torch_geometric.data import Data
+
+def try_call(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except TypeError:
+        return None
+    except Exception:
+        raise
+
+def compute_logits_safe(model, x, edges, device="cpu"):
+    """
+    Try common ways to obtain link logits from a surrogate model.
+    - x: node features (num_nodes x feat_dim)
+    - edges: [2, num_edges] tensor
+    Returns a logits tensor of shape (num_edges,) or (num_edges,1).
+    Raises TypeError with a clear message if no calling convention matches.
+    """
+    model.to(device)
+    model.eval()
+
+    # 1) helper method names often used
+    for name in ("decode", "link_predict", "score_edges", "predict_edges"):
+        if hasattr(model, name):
+            fn = getattr(model, name)
+            out = try_call(fn, x, edges)
+            if out is not None:
+                return out
+
+    # 2) inspect forward signature
+    try:
+        sig = inspect.signature(model.forward)
+        params = list(sig.parameters.keys())[1:]  # skip 'self'
+    except (ValueError, TypeError):
+        params = []
+
+    # try named args
+    if "edge_label_index" in params:
+        out = try_call(model.forward, x, edge_label_index=edges)
+        if out is not None:
+            return out
+
+    if "edge_index" in params:
+        out = try_call(model.forward, x, edge_index=edges)
+        if out is not None:
+            return out
+
+    # try positional
+    out = try_call(model.forward, x, edges)
+    if out is not None:
+        return out
+
+    # try calling the module itself
+    out = try_call(model, x, edges)
+    if out is not None:
+        return out
+
+    # nothing worked
+    raise TypeError(
+        "Unable to compute edge logits for the surrogate model. "
+        "Tried: model.decode(x, edges), model.link_predict(x, edges), "
+        "model.forward(x, edge_label_index=edges), model.forward(x, edge_index=edges), "
+        "model.forward(x, edges), model(x, edges). "
+        "Inspect the surrogate class API or load a different checkpoint."
+    )
+
+def evaluate(model, data, pos_edges, device="cpu"):
+    model.eval()
+    pos = pos_edges
+    neg = negative_sampling(
+        edge_index=data.edge_index,
+        num_nodes=data.num_nodes,
+        num_neg_samples=pos.size(1),
+    )
+    edges = torch.cat([pos, neg], dim=1)
+    labels = torch.cat([torch.ones(pos.size(1)), torch.zeros(neg.size(1))]).cpu().numpy()
+
+    with torch.no_grad():
+        logits = compute_logits_safe(model, data.x.to(device), edges.to(device), device=device)
+        probs = torch.sigmoid(logits).cpu().numpy().ravel()
+    try:
+        return roc_auc_score(labels, probs)
+    except Exception:
+        return float("nan")
+
+def load_dataset(name: str):
+    import networkx as nx
+    from torch_geometric.utils import from_networkx
+    if name == "CA-HepTh":
+        path = "datasets/CA-HepTh/CA-HepTh.txt"
+    elif name == "C-ELEGANS":
+        path = "datasets/C-ELEGANS/C-ELEGANS.txt"
+    else:
+        raise ValueError(f"Unknown dataset: {name}")
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Dataset file not found: {path}")
+
+    # For .mtx-like files (C-ELEGANS) we expect plain edgelist or matrix-market;
+    # here we try to parse generically as edgelist of ints.
+    G = nx.read_edgelist(path, nodetype=int)
+    G = nx.convert_node_labels_to_integers(G)
+    data = from_networkx(G)
+    data.num_nodes = G.number_of_nodes()
+    if not hasattr(data, "x") or data.x is None:
+        # put a small random feature vector (will be padded later as needed)
+        data.x = torch.randn(data.num_nodes, 64)
+    return data
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", required=True, choices=["CA-HepTh", "C-ELEGANS"])
+    parser.add_argument("--embedding_dim", type=int, default=64)
+    parser.add_argument("--surrogate_model", required=True, help="Path to surrogate model (.pth)")
+    parser.add_argument("--wm_dir", default=None, help="Directory containing wm_edges.pt and wm_labels.pt")
+    parser.add_argument("--hidden_dim", type=int, default=64)
+    args = parser.parse_args()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    data = load_dataset(args.dataset)
+    # pad features if necessary
+    if data.x.size(1) < args.embedding_dim:
+        pad = args.embedding_dim - data.x.size(1)
+        data.x = torch.cat([data.x, torch.zeros(data.num_nodes, pad)], dim=1)
+    print(f"[INFO] Padded features from {data.x.size(1)-pad if 'pad' in locals() else data.x.size(1)} -> {data.x.size(1)}")
+
+    # load surrogate
+    sur_path = args.surrogate_model
+    print(f"[INFO] Loading surrogate model from: {sur_path}")
+    loaded = torch.load(sur_path, map_location=device)
+    model = None
+    if isinstance(loaded, torch.nn.Module):
+        model = loaded
+    elif isinstance(loaded, dict):
+        # common checkpoint shapes: {'model': module}, or {'state_dict': ...}
+        if "model" in loaded and isinstance(loaded["model"], torch.nn.Module):
+            model = loaded["model"]
+        elif "state_dict" in loaded:
+            raise RuntimeError("Checkpoint contains only a state_dict. Please construct the model architecture and load the state_dict manually.")
+        else:
+            # maybe the whole module was saved as a dict-like object
+            # try common key names
+            for k in ("surrogate", "net", "model"):
+                if k in loaded and isinstance(loaded[k], torch.nn.Module):
+                    model = loaded[k]
+                    break
+            if model is None:
+                raise RuntimeError(f"Unrecognized surrogate checkpoint format: keys={list(loaded.keys())}")
+    else:
+        raise RuntimeError(f"Unexpected surrogate file content: {type(loaded)}")
+
+    model.to(device)
+    model.eval()
+
+    # quick test AUC on a random sample of positives
+    pos_edges = data.edge_index[:, :min(1000, max(1, data.edge_index.size(1)//10))]
+    test_auc = evaluate(model, data, pos_edges, device=device)
+    print(f"[RESULT] Test AUC (surrogate) on random sample: {test_auc:.4f}")
+
+    # watermark evaluation
+    if args.wm_dir:
+        wm_edges_path = os.path.join(args.wm_dir, "wm_edges.pt")
+        wm_labels_path = os.path.join(args.wm_dir, "wm_labels.pt")
+        if os.path.exists(wm_edges_path) and os.path.exists(wm_labels_path):
+            print(f"[INFO] Found watermark files in {args.wm_dir}. Running watermark evaluation...")
+            wm_edges = torch.load(wm_edges_path)
+            wm_labels = torch.load(wm_labels_path).float().cpu().numpy()
+            try:
+                with torch.no_grad():
+                    wm_logits = compute_logits_safe(model, data.x.to(device), wm_edges.to(device), device=device)
+                    wm_probs = torch.sigmoid(wm_logits).cpu().numpy().ravel()
+                try:
+                    wm_auc = roc_auc_score(wm_labels, wm_probs)
+                    print(f"[RESULT] Watermark AUC: {wm_auc:.4f}")
+                except Exception as e:
+                    print(f"[WARN] Watermark AUC computation failed: {e}")
+            except Exception as e:
+                print(f"[ERROR] Could not compute logits for watermark edges: {e}")
+        else:
+            print("[WARN] No watermark files found in", args.wm_dir)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,323 @@
+#!/usr/bin/env python
+import argparse
+import os
+import inspect
+import re
+import torch
+import numpy as np
+from sklearn.metrics import roc_auc_score
+from torch_geometric.utils import negative_sampling
+from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv
+import torch.nn as nn
+
+def try_call(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except TypeError:
+        return None
+    except Exception:
+        raise
+
+def dot_product_logits(emb, edge_index):
+    src = edge_index[0]
+    dst = edge_index[1]
+    logits = (emb[src] * emb[dst]).sum(dim=1)
+    return logits
+
+def compute_logits_safe(model, x, edges, device="cpu"):
+    model.to(device)
+    model.eval()
+
+    for name in ("decode", "link_predict", "score_edges", "predict_edges"):
+        if hasattr(model, name):
+            out = try_call(getattr(model, name), x, edges)
+            if out is not None:
+                return out
+
+    try:
+        sig = inspect.signature(model.forward)
+        params = list(sig.parameters.keys())[1:]
+    except Exception:
+        params = []
+
+    if "edge_label_index" in params:
+        out = try_call(model.forward, x, edge_label_index=edges)
+        if out is not None:
+            return out
+
+    if "edge_index" in params:
+        out = try_call(model.forward, x, edge_index=edges)
+        if out is not None:
+            return out
+
+    out = try_call(model.forward, x, edges)
+    if out is not None:
+        return out
+
+    out = try_call(model, x, edges)
+    if out is not None:
+        return out
+
+    emb = try_call(model.forward, x)
+    if emb is None:
+        emb = try_call(model, x)
+    if emb is None:
+        raise TypeError("Unable to obtain logits or embeddings from surrogate model with tried call patterns.")
+
+    logits = dot_product_logits(emb, edges.to(device))
+    return logits
+
+def evaluate(model, data, pos_edges, device="cpu"):
+    model.eval()
+    pos = pos_edges
+    neg = negative_sampling(
+        edge_index=data.edge_index,
+        num_nodes=data.num_nodes,
+        num_neg_samples=pos.size(1),
+    )
+    edges = torch.cat([pos, neg], dim=1)
+    labels = torch.cat([torch.ones(pos.size(1)), torch.zeros(neg.size(1))]).cpu().numpy()
+
+    with torch.no_grad():
+        logits = compute_logits_safe(model, data.x.to(device), edges.to(device), device=device)
+        probs = torch.sigmoid(logits).cpu().numpy().ravel()
+    try:
+        return roc_auc_score(labels, probs)
+    except Exception:
+        return float("nan")
+
+def load_dataset(name: str):
+    import networkx as nx
+    from torch_geometric.utils import from_networkx
+    if name == "CA-HepTh":
+        path = "datasets/CA-HepTh/CA-HepTh.txt"
+    elif name == "C-ELEGANS":
+        path = "datasets/C-ELEGANS/C-ELEGANS.txt"
+    else:
+        raise ValueError(f"Unknown dataset: {name}")
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Dataset file not found: {path}")
+
+    G = nx.read_edgelist(path, nodetype=int)
+    G = nx.convert_node_labels_to_integers(G)
+    data = from_networkx(G)
+    data.num_nodes = G.number_of_nodes()
+    if not hasattr(data, "x") or data.x is None:
+        data.x = torch.randn(data.num_nodes, 64)
+    return data
+
+def build_encoder_from_state_dict(state_dict, device="cpu"):
+    """
+    Build a simple encoder with GCNConv layers matching keys like 'convs.0.lin.weight'.
+    We'll inspect weight shapes to determine in/out dims, and adapt saved tensors
+    (transpose/reshape) if necessary when loading into the encoder.
+    """
+    conv_idx = set()
+    pattern = re.compile(r"convs\.(\d+)\.lin\.weight")
+    for k in state_dict.keys():
+        m = pattern.match(k)
+        if m:
+            conv_idx.add(int(m.group(1)))
+    if not conv_idx:
+        return None
+
+    max_idx = max(conv_idx)
+    layer_dims = {}
+    # infer dims; we'll be conservative and only look at shapes,
+    # actual orientation may vary; we'll adapt when loading.
+    for k, v in state_dict.items():
+        m = pattern.match(k)
+        if m:
+            i = int(m.group(1))
+            # store the raw tensor shape for later adaptation
+            layer_dims[i] = tuple(v.shape)
+
+    dims = []
+    for i in range(max_idx + 1):
+        if i not in layer_dims:
+            raise RuntimeError(f"Missing conv weight info for convs.{i}")
+        # we can't be 100% sure which axis is in/out just from saved shape,
+        # but we'll choose a reasonable default placeholder and let load-time adaptation handle the rest.
+        # We'll pick (in=?, out=?) as (min_dim, max_dim) just to construct layers — they'll be adapted below.
+        s0, s1 = layer_dims[i]
+        # choose in_dim as the smaller axis (likely feature dim), out_dim as larger
+        in_dim = min(s0, s1)
+        out_dim = max(s0, s1)
+        dims.append((in_dim, out_dim))
+
+    class Encoder(nn.Module):
+        def __init__(self, dims):
+            super().__init__()
+            self.convs = nn.ModuleList()
+            for (in_d, out_d) in dims:
+                self.convs.append(GCNConv(in_d, out_d))
+
+        def forward(self, x, edge_index=None):
+            if edge_index is None and hasattr(self, "full_edge_index"):
+                edge_index = self.full_edge_index.to(x.device)
+            out = x
+            for conv in self.convs:
+                out = conv(out, edge_index)
+                out = torch.relu(out)
+            return out
+
+    enc = Encoder(dims).to(device)
+
+    # Prepare filtered saved weights
+    filtered = {k: v.clone().cpu() for k, v in state_dict.items() if k.startswith("convs.")}
+
+    # Now adapt saved tensors to match target enc.state_dict shapes
+    enc_state = enc.state_dict()
+    mapped = {}
+    for k, v in filtered.items():
+        newk = k
+        if newk not in enc_state:
+            if newk.startswith("module."):
+                newk = newk[len("module."):]
+        if newk in enc_state:
+            target_shape = tuple(enc_state[newk].shape)
+            if tuple(v.shape) == target_shape:
+                mapped[newk] = v
+            else:
+                # try transpose
+                try:
+                    if tuple(v.t().shape) == target_shape:
+                        mapped[newk] = v.t().contiguous()
+                        continue
+                except Exception:
+                    pass
+                # try reshape if total elements match
+                if v.numel() == enc_state[newk].numel():
+                    mapped[newk] = v.reshape(target_shape)
+                else:
+                    # as a last resort, try to broadcast by creating zeros and copying overlapping part
+                    print(f"[WARN] Shape mismatch for key {k}: saved {tuple(v.shape)}, expected {target_shape}. Skipping this key.")
+        else:
+            # not a key we have in enc_state; skip
+            pass
+
+    # load mapped (non-strict)
+    enc.load_state_dict(mapped, strict=False)
+
+    return enc
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", required=True, choices=["CA-HepTh", "C-ELEGANS"])
+    parser.add_argument("--embedding_dim", type=int, default=64)
+    parser.add_argument("--surrogate_model", required=True, help="Path to surrogate model (.pth)")
+    parser.add_argument("--wm_dir", default=None, help="Directory containing wm_edges.pt and wm_labels.pt")
+    parser.add_argument("--hidden_dim", type=int, default=64)
+    args = parser.parse_args()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    data = load_dataset(args.dataset)
+
+    # We'll pad features later once we know what the encoder expects; keep a baseline padding to embedding_dim.
+    if data.x.size(1) < args.embedding_dim:
+        pad = args.embedding_dim - data.x.size(1)
+        data.x = torch.cat([data.x, torch.zeros(data.num_nodes, pad)], dim=1)
+    print(f"[INFO] Padded features from {data.x.size(1)- (pad if 'pad' in locals() else 0)} -> {data.x.size(1)}")
+
+    sur_path = args.surrogate_model
+    print(f"[INFO] Loading surrogate model from: {sur_path}")
+    loaded = torch.load(sur_path, map_location=device)
+
+    model = None
+    if isinstance(loaded, torch.nn.Module):
+        model = loaded.to(device)
+    elif isinstance(loaded, dict):
+        possible_sd = None
+        if "state_dict" in loaded and isinstance(loaded["state_dict"], dict):
+            possible_sd = loaded["state_dict"]
+        else:
+            if all(isinstance(v, torch.Tensor) for v in loaded.values()):
+                possible_sd = loaded
+
+        if possible_sd is not None:
+            enc = build_encoder_from_state_dict(possible_sd, device=device)
+            if enc is not None:
+                class Wrapper(nn.Module):
+                    def __init__(self, encoder, full_edge_index):
+                        super().__init__()
+                        self.encoder = encoder
+                        self.full_edge_index = full_edge_index
+
+                    def forward(self, x, edge_label_index=None, edge_index=None):
+                        ei = edge_index if edge_index is not None else (edge_label_index if edge_label_index is not None else self.full_edge_index)
+                        emb = self.encoder(x, ei)
+                        if edge_label_index is None and edge_index is None:
+                            return emb
+                        eidx = edge_label_index if edge_label_index is not None else edge_index
+                        logits = dot_product_logits(emb, eidx.to(emb.device))
+                        return logits
+
+                enc.full_edge_index = data.edge_index.to(device)
+                model = Wrapper(enc, data.edge_index.to(device)).to(device)
+            else:
+                raise RuntimeError("Unrecognized surrogate checkpoint format: no convs.* keys found to rebuild encoder.")
+        else:
+            found_module = None
+            for k in ("model", "surrogate", "net"):
+                if k in loaded and isinstance(loaded[k], torch.nn.Module):
+                    found_module = loaded[k]
+                    break
+            if found_module is not None:
+                model = found_module.to(device)
+            else:
+                raise RuntimeError(f"Unrecognized surrogate checkpoint format: keys={list(loaded.keys())}")
+    else:
+        raise RuntimeError(f"Unexpected surrogate file content: {type(loaded)}")
+
+    model.to(device)
+    model.eval()
+
+    # Attempt to align data.x dim to what encoder's first layer expects if possible
+    try:
+        # inspect encoder param shapes if wrapper present
+        if hasattr(model, "encoder"):
+            enc_state = model.encoder.state_dict()
+            # find first linear param in encoder
+            for k, v in enc_state.items():
+                if k.endswith("lin.weight"):
+                    expected_in = v.shape[0] if v.ndim == 2 else None
+                    # If expected_in doesn't match current data.x dim but v.t() matches, use transpose logic
+                    if expected_in and data.x.size(1) != expected_in:
+                        pad_to = max(expected_in, data.x.size(1))
+                        if pad_to > data.x.size(1):
+                            data.x = torch.cat([data.x, torch.zeros(data.num_nodes, pad_to - data.x.size(1))], dim=1)
+                            print(f"[INFO] Padded features to match encoder: new dim {data.x.size(1)}")
+                    break
+    except Exception:
+        pass
+
+    pos_edges = data.edge_index[:, :min(1000, max(1, data.edge_index.size(1)//10))]
+    test_auc = evaluate(model, data, pos_edges, device=device)
+    print(f"[RESULT] Test AUC (surrogate) on random sample: {test_auc:.4f}")
+
+    if args.wm_dir:
+        wm_edges_path = os.path.join(args.wm_dir, "wm_edges.pt")
+        wm_labels_path = os.path.join(args.wm_dir, "wm_labels.pt")
+        if os.path.exists(wm_edges_path) and os.path.exists(wm_labels_path):
+            print(f"[INFO] Found watermark files in {args.wm_dir}. Running watermark evaluation...")
+            wm_edges = torch.load(wm_edges_path)
+            wm_labels = torch.load(wm_labels_path).float().cpu().numpy()
+            try:
+                with torch.no_grad():
+                    wm_logits = compute_logits_safe(model, data.x.to(device), wm_edges.to(device), device=device)
+                    wm_probs = torch.sigmoid(wm_logits).cpu().numpy().ravel()
+                try:
+                    wm_auc = roc_auc_score(wm_labels, wm_probs)
+                    print(f"[RESULT] Watermark AUC: {wm_auc:.4f}")
+                except Exception as e:
+                    print(f"[WARN] Watermark AUC computation failed: {e}")
+            except Exception as e:
+                print(f"[ERROR] Could not compute logits for watermark edges: {e}")
+        else:
+            print("[WARN] No watermark files found in", args.wm_dir)
+
+if __name__ == "__main__":
+    main()
