@@ -66,6 +66,7 @@ genie_gnn/
 ├── requirements.txt             # Dependencies
 └── README.md                    # This file
 
+
 ## ⚙️ Setup
 ** 1. Create environment **
 ` conda create -n genie_gnn python=3.10 -y `
