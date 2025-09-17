@@ -12,17 +12,17 @@ Pruning – removing a fraction of weights from the GCN and evaluating watermark
 
 ## ✅ What has been done:
 
-# Implemented a watermarked GCN link predictor with Node2Vec features.
+1. Implemented a watermarked GCN link predictor with Node2Vec features.
 
-# Built the model extraction pipeline (CA-HepTh, C-ELEGANS) with variable subset ratios.
+2. Built the model extraction pipeline (CA-HepTh, C-ELEGANS) with variable subset ratios.
 
-# Implemented the pruning attack pipeline with configurable pruning ratios.
+3. Implemented the pruning attack pipeline with configurable pruning ratios.
 
-# Automated experiment orchestration in test.py.
+4. Automated experiment orchestration in test.py.
 
-# Added result saving (CSV + logs) and plotting scripts for easy visualization.
+5. Added result saving (CSV + logs) and plotting scripts for easy visualization.
 
-# Packaged everything in a reproducible format for sharing.
+6. Packaged everything in a reproducible format for sharing.
 
 ## 🎯 What you can do:
 
