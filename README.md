@@ -36,7 +36,7 @@ Inspect intermediate results (results/) and generated plots (results/plots/).
 Extend to other robustness experiments (e.g., fine-tuning, watermark overwriting) using the same pipeline.
 
 **📂 Project Structure**
-
+````
 genie_gnn/
 │
 ├── data/                       # Datasets (SNAP CA-HepTh, C-ELEGANS, etc.)
@@ -66,7 +66,7 @@ genie_gnn/
 ├── requirements.txt             # Dependencies
 └── README.md                    # This file
 
-
+````
 ## ⚙️ Setup
 ** 1. Create environment **
 ` conda create -n genie_gnn python=3.10 -y `
