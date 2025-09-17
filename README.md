@@ -1,139 +1,146 @@
 # GENIE-GNN: Watermarking Graph Neural Networks for Link Prediction
 
-This repository contains a reproduction and extension of the paper:
 
-> **GENIE: Watermarking Graph Neural Networks for Link Prediction**  
-> [Paper Link](https://arxiv.org/abs/2406.04805)
+## 📘 GENIE Reproduction – Watermark Robustness Experiments
+## 🔎 Overview of This Reproduction
 
-The goal is to embed robust and verifiable watermarks in GNN models for **link prediction** tasks. The watermark should survive **model extraction**, **pruning**, and **fine-tuning** attacks, while preserving the model’s performance on the original task.
+This repository reproduces watermark robustness experiments from the GENIE paper, focusing on two attacks:
 
----
+Model Extraction – training surrogate GCN models by querying a watermarked model.
 
-## 📌 Summary
+Pruning – removing a fraction of weights from the GCN and evaluating watermark survivability.
 
-This project:
+## ✅ What has been done:
 
-- Reproduces GENIE baseline using Node2Vec embeddings + GCN on standard graph datasets.
-- Implements watermark embedding and detection as described in the paper.
-- Tests watermark robustness under:
-  - Model extraction attacks (partial data)
-  - Weight pruning
-  - Finetuning
-- Includes experimental results and visualizations.
+# Implemented a watermarked GCN link predictor with Node2Vec features.
 
----
+# Built the model extraction pipeline (CA-HepTh, C-ELEGANS) with variable subset ratios.
 
-## 🗂️ Project Structure
+# Implemented the pruning attack pipeline with configurable pruning ratios.
 
-```bash
-GENIE-GNN/
-├── data/Snap/                # Graph datasets (Amazon, ca-HepTh, C-ELEGANS)
-├── datasets/                 # Preprocessing and watermarking logic
-├── models/                   # GCN model for link prediction
-├── results/                  # Outputs, logs, visualizations, metrics
-├── token.txt                 # Removed/ignored (do not track)
-├── cached_model.pth          # Trained model weights
-├── watermarked_model.pth     # Model after watermark embedding
-├── .gitignore
-├── README.md
-```
-## 📥 Installation
+# Automated experiment orchestration in test.py.
 
-## Clone the repository
-```bash
-git clone git@github.com:Sparshkhare1306/GENIE-GNN.git
-cd GENIE-GNN
-```
-## Set up Python environment
-```bash
-conda create -n genie_venv python=3.10
-conda activate genie_venv
-```
+# Added result saving (CSV + logs) and plotting scripts for easy visualization.
 
-## Install dependencies
-```bash
-pip install torch torchvision torchaudio
-pip install torch-geometric
-pip install matplotlib numpy scikit-learn tqdm
-pip install scipy networkx
-```
-## 📊 Datasets Used
+# Packaged everything in a reproducible format for sharing.
 
-1. ca-HepTh.txt — Collaboration network from arXiv
+## 🎯 What you can do:
 
-2. c_elegans.mtx — C. Elegans neural network
+# Reproduce all experiments with a single command:
 
-3. amazon_co_purchase.txt — Amazon co-purchase network
+`python test.py --step all`
 
 
-All datasets are stored under data/Snap/.
+Inspect intermediate results (results/) and generated plots (results/plots/).
 
+Extend to other robustness experiments (e.g., fine-tuning, watermark overwriting) using the same pipeline.
 
-## 🧪 Running Experiments
+**📂 Project Structure**
 
-You can run experiments for watermarking and robustness testing by executing scripts like:
-``` bash
-python run_experiment.py --dataset hepth --attack pruning
-```
-(Currently scripts are modularized — refer to each script in datasets/ and models/ for functionality.)
+genie_gnn/
+│
+├── data/                       # Datasets (SNAP CA-HepTh, C-ELEGANS, etc.)
+│   └── Snap/
+│       ├── ca-HepTh.txt
+│       └── C-elegans.txt
+│
+├── models/                     # Model definitions
+│   └── gcn_link_predictor.py
+│
+├── attacks/                    # Attack scripts
+│   ├── model_extraction.py     # Model extraction pipeline
+│   └── pruning_attack.py       # Pruning attack pipeline
+│
+├── utils/                      # Helper functions
+│
+├── results/                    # Logs, checkpoints, CSVs, and plots
+│   ├── CA-HepTh/
+│   │   ├── subset_0_30/
+│   │   │   ├── watermarked_model.pth
+│   │   │   ├── pruning_20.csv
+│   │   │   └── plots/
+│   └── C-ELEGANS/
+│
+├── test.py                     # Master script to reproduce experiments
+├── plot_metrics.py              # Visualization of metrics
+├── requirements.txt             # Dependencies
+└── README.md                    # This file
 
-You may implement or invoke:
+## ⚙️ Setup
+** 1. Create environment **
+` conda create -n genie_gnn python=3.10 -y `
+`conda activate genie_gnn`
 
-- Watermark embedding (datasets/watermark.py)
+** 2. Install dependencies **
+` pip install -r requirements.txt `
 
-- Link prediction using GCN (models/gcn_link_predictor.py)
+** 3. Install PyTorch Geometric (if not already installed) **
 
-- AUC and performance metrics
+Follow the instructions at: PyTorch Geometric Installation
 
-- Pruning attacks and subset extraction
+## Example (for CPU):
 
-## 📈 Results Overview
-Watermark robustness visualizations are available:
+` pip install torch-scatter torch-sparse torch-geometric `
 
-- results/CA-HepTh/auc_vs_ratio.png
+🚀 Usage
+1. Train a watermarked model
+` python main.py --dataset CA-HepTh --subset_ratio 0.3 --save_model`
 
-- results/C-ELEGANS/auc_vs_ratio.png
+2. Run pruning attack
+` python -m attacks.pruning_attack --dataset CA-HepTh --subset_ratio 0.3 --prune_ratio 0.2 --save_pruned_model` 
 
-- results/combined_auc_vs_ratio.png
+3. Run model extraction attack
+` python -m attacks.model_extraction --dataset CA-HepTh --subset_ratio 0.3 --query_ratio 0.5`
 
-## Each folder under results/ also contains:
+4. Run everything end-to-end
+` python test.py --step all `
 
-- config.txt – experimental setup
+## 📊 Results
 
-- metrics.csv, metrics_finetune.csv – performance logs
+Results are saved under results/{DATASET}/subset_{RATIO}/.
 
-- log.txt – runtime logs
+For each run you will find:
 
-- watermarked_model.pth – saved model with embedded watermark
+watermarked_model.pth → Original watermarked model checkpoint
 
-## 📁 Example Metrics Output
-| Dataset   | Subset Ratio | Test AUC | Watermark AUC | Survived Attack |
-| --------- | ------------ | -------- | ------------- | --------------- |
-| CA-HepTh  | 0.1          | 0.925    | 0.89          | ✅ Yes           |
-| C-ELEGANS | 0.3          | 0.891    | 0.87          | ✅ Yes           |
+watermarked_model_pruned_XX.pth → Pruned model checkpoint
 
+pruning_XX.csv → Pruning results (Test AUC, WM AUC)
 
-## 🔐 Security and .gitignore
-- This repository uses .gitignore to:
+extraction_results.csv → Model extraction results
 
-- Exclude sensitive files (e.g., token.txt)
+plots/ → Visualizations of accuracy, watermark robustness, etc.
 
-- Ignore cache files and system artifacts
+Example output:
 
-- Avoid committing large datasets or model binaries unintentionally
+results/CA-HepTh/subset_0_30/
+│
+├── watermarked_model.pth
+├── watermarked_model_pruned_20.pth
+├── pruning_20.csv
+├── extraction_results.csv
+└── plots/
+    ├── pruning_curve.png
+    └── extraction_performance.png
 
-🧠 Key Concepts
-- **Link Prediction:** Predict if an edge exists between two nodes in a graph.
+## 🧪 Experiments Included
 
-- **Graph Watermarking:** Embed a small pattern or substructure into a GNN’s training process to prove ownership.
+CA-HepTh dataset with subset ratio 0.3
 
-- **Model Extraction:** Attack where adversaries replicate a model using limited access to it.
+Model extraction at different query ratios
 
-- **Pruning:** Removing weights or neurons to reduce model size.
+Pruning at different prune ratios (0.2, 0.4, 0.6, …)
 
-- **AUC:** Area under ROC curve, measures classification performance.
+C-ELEGANS dataset with subset ratio 0.3
 
+Same robustness evaluation (model extraction + pruning).
 
+## 📝 Notes
 
+Code is based on PyTorch Geometric (PyG).
 
+Currently implemented attacks: pruning and model extraction.
 
+Future extensions: fine-tuning robustness, watermark overwriting, etc.
+
+Default device is CPU (can switch to GPU by setting --device cuda).
