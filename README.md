@@ -6,9 +6,9 @@
 
 This repository reproduces watermark robustness experiments from the GENIE paper, focusing on two attacks:
 
-Model Extraction – training surrogate GCN models by querying a watermarked model.
+* Model Extraction – training surrogate GCN models by querying a watermarked model.
 
-Pruning – removing a fraction of weights from the GCN and evaluating watermark survivability.
+* Pruning – removing a fraction of weights from the GCN and evaluating watermark survivability.
 
 ## ✅ What has been done:
 
