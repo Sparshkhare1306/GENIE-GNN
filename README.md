@@ -85,16 +85,20 @@ Follow the instructions at: PyTorch Geometric Installation
 
 🚀 Usage
 1. Train a watermarked model
-` python main.py --dataset CA-HepTh --subset_ratio 0.3 --save_model`
+
+`python main.py --dataset CA-HepTh --subset_ratio 0.3 --save_model`
 
 2. Run pruning attack
-` python -m attacks.pruning_attack --dataset CA-HepTh --subset_ratio 0.3 --prune_ratio 0.2 --save_pruned_model` 
+
+`python -m attacks.pruning_attack --dataset CA-HepTh --subset_ratio 0.3 --prune_ratio 0.2 --save_pruned_model` 
 
 3. Run model extraction attack
-` python -m attacks.model_extraction --dataset CA-HepTh --subset_ratio 0.3 --query_ratio 0.5`
+
+`python -m attacks.model_extraction --dataset CA-HepTh --subset_ratio 0.3 --query_ratio 0.5`
 
 4. Run everything end-to-end
-` python test.py --step all `
+   
+`python test.py --step all`
 
 ## 📊 Results
 
@@ -113,7 +117,7 @@ extraction_results.csv → Model extraction results
 plots/ → Visualizations of accuracy, watermark robustness, etc.
 
 Example output:
-
+````
 results/CA-HepTh/subset_0_30/
 │
 ├── watermarked_model.pth
@@ -123,7 +127,7 @@ results/CA-HepTh/subset_0_30/
 └── plots/
     ├── pruning_curve.png
     └── extraction_performance.png
-
+````
 ## 🧪 Experiments Included
 
 CA-HepTh dataset with subset ratio 0.3
