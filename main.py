@@ -1,170 +1,91 @@
-import argparse
-import os
+# main.py
+import os, argparse, json, random
 import torch
 import torch.nn.functional as F
-from torch_geometric.utils import from_networkx, train_test_split_edges, negative_sampling
-from sklearn.metrics import roc_auc_score
-import csv
+from torch_geometric.transforms import RandomLinkSplit
 
-from datasets.embed_hepth import generate_node2vec_features
-from datasets.watermark import inject_watermark_features
-from models.gcn_link_predictor import GCNLinkPredictorV2  # Note updated import for V2 model
-from datasets.load_celegans import load_c_elegans 
+from datasets.datasets import CAHepTh, CElegans
+from models.gcn_link_predictor import GCNLinkPredictorV2
+from genie import generate_watermark_edges, add_watermark_to_split, verify_watermark
 
-# ---------------------- #
-# Parse Arguments
-# ---------------------- #
-parser = argparse.ArgumentParser()
-parser.add_argument('--subset_ratio', type=float, default=0.3, help='Subset ratio for watermarking')
-parser.add_argument(
-    '--dataset', type=str, default="CA-HepTh", 
-    choices=["CA-HepTh", "AMAZON", "C-ELEGANS"], 
-    help='Dataset to use'
-)
-parser.add_argument('--hidden_channels', type=int, default=64, help='Hidden channels for GCN')
-args = parser.parse_args()
+def set_seed(seed=42):
+    random.seed(seed); torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
-# ---------------------- #
-# Select Dataset & Loader
-# ---------------------- #
-dataset_name = args.dataset
+def accuracy_from_logits(logits, labels):
+    probs = torch.sigmoid(logits)
+    preds = (probs > 0.5).float()
+    return (preds.cpu() == labels.float().cpu()).float().mean().item()
 
-if dataset_name == "CA-HepTh":
-    file_path = os.path.join("data", "Snap", "ca-HepTh.txt")
-    from datasets.load_hepth import load_hepth as dataset_loader
-elif dataset_name == "AMAZON":
-    file_path = os.path.join("data", "Snap", "amazon_co_purchase.txt")
-    from datasets.load_amazon import load_amazon as dataset_loader
-elif dataset_name == "C-ELEGANS":
-    file_path = os.path.join("data", "Snap", "c_elegans.mtx")
-    from datasets.load_celegans import load_c_elegans as dataset_loader
-else:
-    raise ValueError(f"Unsupported dataset: {dataset_name}")
-
-# ---------------------- #
-# Set Up Output Paths
-# ---------------------- #
-subset_folder_name = f"subset_{args.subset_ratio:.2f}".replace('.', '_')
-results_dir = os.path.join("results", dataset_name, subset_folder_name)
-os.makedirs(results_dir, exist_ok=True)
-
-csv_path = os.path.join(results_dir, "metrics.csv")
-log_path = os.path.join(results_dir, "log.txt")
-model_path = os.path.join(results_dir, "watermarked_model.pth")
-config_path = os.path.join(results_dir, "config.txt")
-
-with open(config_path, "w") as f:
-    f.write(f"Dataset: {dataset_name}\n")
-    f.write(f"Node2Vec embedding_dim: 64\n")  # This is fixed in generate_node2vec_features
-    f.write(f"GCN hidden_channels: {args.hidden_channels}\n")
-    f.write(f"Watermark subset_ratio: {args.subset_ratio}\n")
-    f.write("Training epochs: 100\n")
-    f.write("Learning rate: 0.01\n")
-
-# ---------------------- #
-# Main Logic
-# ---------------------- #
 def main():
-    print(f"Loading graph for dataset: {dataset_name} ...")
-    graph = dataset_loader(file_path)
-    print("Graph loaded!")
-    print(f"- Nodes: {graph.number_of_nodes()}")
-    print(f"- Edges: {graph.number_of_edges()}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, choices=["CA-HepTh", "C-ELEGANS"], required=True)
+    parser.add_argument("--hidden_channels", type=int, default=64)
+    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--subset_ratio", type=float, default=0.3)
+    args = parser.parse_args()
 
-    print("Generating Node2Vec features...")
-    features = generate_node2vec_features(graph, embedding_dim=64, epochs=50)
-    print("Feature matrix shape:", features.shape)
-
-    data = from_networkx(graph)
-    data.x = torch.tensor(features, dtype=torch.float)
-    data = train_test_split_edges(data)
+    set_seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    wm_graph, wm_edge_index, wm_features, wm_labels = inject_watermark_features(
-        graph, data.x, subset_ratio=args.subset_ratio
-    )
-    wm_features = wm_features.to(device)
-    wm_edge_index = wm_edge_index.to(device)
-    wm_labels = wm_labels.to(device)
+    # ✅ Load dataset
+    if args.dataset == "CA-HepTh":
+        dataset = CAHepTh(root="./data/Snap")
+    elif args.dataset == "C-ELEGANS":
+        dataset = CElegans(root="./data/NetworkRepository")
+    else:
+        raise ValueError(f"Unknown dataset {args.dataset}")
+    data = dataset[0]
 
-    model = GCNLinkPredictorV2(in_channels=features.shape[1], hidden_channels=args.hidden_channels)
-    model = model.to(device)
+    # Dummy features if none exist
+    if not hasattr(data, "x") or data.x is None:
+        data.x = torch.eye(data.num_nodes)
 
+    # ✅ Train/val/test split
+    transform = RandomLinkSplit(is_undirected=True, add_negative_train_samples=True)
+    train_data, val_data, test_data = transform(data)
+
+    # ✅ Inject watermark into training split
+    wm_edge_index, wm_edge_label = generate_watermark_edges(data, num_edges=50, seed=42)
+    train_data = add_watermark_to_split(train_data, wm_edge_index, wm_edge_label)
+
+    # ✅ Model
+    model = GCNLinkPredictorV2(in_channels=data.x.size(-1), hidden_channels=args.hidden_channels).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    data = data.to(device)
 
-    with open(csv_path, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["epoch", "loss", "test_auc", "watermark_auc"])
-
-    def train():
+    # ✅ Training loop
+    for epoch in range(1, args.epochs + 1):
         model.train()
         optimizer.zero_grad()
-
-        z = model.encode(data.x, data.train_pos_edge_index)
-        pos_score = model.decode(z, data.train_pos_edge_index)
-        neg_edge_index = negative_sampling(
-            edge_index=data.train_pos_edge_index,
-            num_nodes=data.num_nodes,
-            num_neg_samples=data.train_pos_edge_index.size(1),
-        )
-        neg_score = model.decode(z, neg_edge_index)
-        y = torch.cat([torch.ones(pos_score.size(0)), torch.zeros(neg_score.size(0))]).to(device)
-        preds = torch.cat([pos_score, neg_score])
-        loss_clean = F.binary_cross_entropy_with_logits(preds, y)
-
-        z_wm = model.encode(wm_features, data.train_pos_edge_index)
-        wm_preds = model.decode(z_wm, wm_edge_index)
-        loss_wm = F.binary_cross_entropy_with_logits(wm_preds, wm_labels)
-
-        loss = loss_clean + loss_wm
+        z = model.encode(train_data.x, train_data.edge_index)
+        logits = model.decode(z, train_data.edge_label_index)
+        loss = F.binary_cross_entropy_with_logits(logits, train_data.edge_label.float())
         loss.backward()
         optimizer.step()
-        return loss.item()
 
-    @torch.no_grad()
-    def test():
-        model.eval()
-        z = model.encode(data.x, data.train_pos_edge_index)
-        pos_score = model.decode(z, data.train_pos_edge_index).squeeze()
-        neg_score = model.decode(z, data.test_neg_edge_index)
-        y = torch.cat([torch.ones(pos_score.size(0)), torch.zeros(neg_score.size(0))]).to(device)
-        preds = torch.cat([pos_score, neg_score])
-        return roc_auc_score(y.cpu(), preds.cpu())
+        if epoch % 20 == 0 or epoch == args.epochs:
+            model.eval()
+            with torch.no_grad():
+                z = model.encode(test_data.x, test_data.edge_index)
+                logits = model.decode(z, test_data.edge_label_index)
+                acc = accuracy_from_logits(logits, test_data.edge_label)
+                wm_acc = verify_watermark(model, data, wm_edge_index, wm_edge_label)
+            print(f"Epoch {epoch:03d}, Loss: {loss.item():.4f}, Test Acc: {acc:.4f}, WM Acc: {wm_acc:.4f}")
 
-    @torch.no_grad()
-    def test_watermark():
-        model.eval()
-        z = model.encode(wm_features, data.train_pos_edge_index)
-        preds = model.decode(z, wm_edge_index)
-        return roc_auc_score(wm_labels.cpu(), preds.cpu())
-
-    print(f"Starting training with watermarking for subset_ratio={args.subset_ratio}...")
-    for epoch in range(1, 101):
-        loss = train()
-        if epoch % 10 == 0:
-            auc_clean = test()
-            auc_wm = test_watermark()
-            log_str = f"Epoch {epoch:03d} | Loss: {loss:.4f} | Test AUC: {auc_clean:.4f} | Watermark AUC: {auc_wm:.4f}"
-            print(log_str)
-
-            with open(csv_path, mode="a", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow([epoch, loss, auc_clean, auc_wm])
-
-            with open(log_path, "a") as f:
-                f.write(log_str + "\n")
-
-    # Save model and config for compatibility with prune.py or extraction scripts
+    # ✅ Save
+    results_dir = os.path.join("results", args.dataset, f"subset_{args.subset_ratio:.2f}".replace(".", "_"))
+    os.makedirs(results_dir, exist_ok=True)
+    ckpt_path = os.path.join(results_dir, "watermarked_model.pth")
     torch.save({
         "model_state": model.state_dict(),
-        "config": {
-            "input_dim": features.shape[1],
-            "hidden_dim": args.hidden_channels
-        }
-    }, model_path)
+        "config": {"input_dim": data.x.size(-1), "hidden_dim": args.hidden_channels}
+    }, ckpt_path)
 
-    print(f"✅ Watermarked model saved to {model_path}")
+    with open(os.path.join(results_dir, "train_summary.json"), "w") as f:
+        json.dump({"final_test_acc": float(acc), "final_wm_acc": float(wm_acc)}, f, indent=2)
+
+    print(f"Saved model -> {ckpt_path}")
 
 if __name__ == "__main__":
     main()
