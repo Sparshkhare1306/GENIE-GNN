@@ -70,16 +70,16 @@ genie_gnn/
 
 ````
 ## ⚙️ Setup
-** 1. Create environment **
+### 1. Create environment*
 
 ` conda create -n genie_gnn python=3.10 -y `
 `conda activate genie_gnn`
 
-** 2. Install dependencies **
+### 2. Install dependencies 
 
 ` pip install -r requirements.txt `
 
-** 3. Install PyTorch Geometric (if not already installed) **
+### 3. Install PyTorch Geometric (if not already installed)
 
 Follow the instructions at: PyTorch Geometric Installation
 
