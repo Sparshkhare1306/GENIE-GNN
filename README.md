@@ -26,7 +26,9 @@ This repository reproduces watermark robustness experiments from the GENIE paper
 
 ## 🎯 What you can do:
 
-# Reproduce all experiments with a single command:
+## Reproduce all experiments with a single command:
+
+To reproduce all experiment result, just execute the following command given below:
 
 `python test.py --step all`
 
@@ -69,10 +71,12 @@ genie_gnn/
 ````
 ## ⚙️ Setup
 ** 1. Create environment **
+
 ` conda create -n genie_gnn python=3.10 -y `
 `conda activate genie_gnn`
 
 ** 2. Install dependencies **
+
 ` pip install -r requirements.txt `
 
 ** 3. Install PyTorch Geometric (if not already installed) **
@@ -83,7 +87,7 @@ Follow the instructions at: PyTorch Geometric Installation
 
 ` pip install torch-scatter torch-sparse torch-geometric `
 
-🚀 Usage
+## 🚀 Usage
 1. Train a watermarked model
 
 `python main.py --dataset CA-HepTh --subset_ratio 0.3 --save_model`
@@ -106,15 +110,15 @@ Results are saved under results/{DATASET}/subset_{RATIO}/.
 
 For each run you will find:
 
-watermarked_model.pth → Original watermarked model checkpoint
+- watermarked_model.pth → Original watermarked model checkpoint
 
-watermarked_model_pruned_XX.pth → Pruned model checkpoint
+- watermarked_model_pruned_XX.pth → Pruned model checkpoint
 
-pruning_XX.csv → Pruning results (Test AUC, WM AUC)
+- pruning_XX.csv → Pruning results (Test AUC, WM AUC)
 
-extraction_results.csv → Model extraction results
+- extraction_results.csv → Model extraction results
 
-plots/ → Visualizations of accuracy, watermark robustness, etc.
+- plots/ → Visualizations of accuracy, watermark robustness, etc.
 
 Example output:
 ````
@@ -130,22 +134,22 @@ results/CA-HepTh/subset_0_30/
 ````
 ## 🧪 Experiments Included
 
-CA-HepTh dataset with subset ratio 0.3
+- CA-HepTh dataset with subset ratio 0.3
 
-Model extraction at different query ratios
+- Model extraction at different query ratios
 
-Pruning at different prune ratios (0.2, 0.4, 0.6, …)
+- Pruning at different prune ratios (0.2, 0.4, 0.6, …)
 
-C-ELEGANS dataset with subset ratio 0.3
+- C-ELEGANS dataset with subset ratio 0.3
 
-Same robustness evaluation (model extraction + pruning).
+- Same robustness evaluation (model extraction + pruning).
 
 ## 📝 Notes
 
-Code is based on PyTorch Geometric (PyG).
+- Code is based on PyTorch Geometric (PyG).
 
-Currently implemented attacks: pruning and model extraction.
+- Currently implemented attacks: pruning and model extraction.
 
-Future extensions: fine-tuning robustness, watermark overwriting, etc.
+- Future extensions: fine-tuning robustness, watermark overwriting, etc.
 
-Default device is CPU (can switch to GPU by setting --device cuda).
+- Default device is CPU (can switch to GPU by setting --device cuda).
