@@ -72,7 +72,8 @@ genie_gnn/
 ## ⚙️ Setup
 ### 1. Create environment*
 
-` conda create -n genie_gnn python=3.10 -y `
+` conda create -n genie_gnn python=3.10 -y`
+
 `conda activate genie_gnn`
 
 ### 2. Install dependencies 
